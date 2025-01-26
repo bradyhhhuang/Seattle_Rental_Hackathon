@@ -143,21 +143,24 @@ def rb(df:pd.DataFrame, car:bool, income:int, budget:int, park:int
             # df_copy['rb'] -= df_copy['cafe_trans_duration_transit'] / 60 * earning_per_min * cafe * 2 
 
     df_copy = df_copy.sort_values('rb', ascending=False).iloc[:5]
-    print(df_copy.shape)
-    return df_copy[['latLong', 'address', 'nearest_park', 'nearest_supermarket']]
+    # print(df_copy.shape)
+    return df_copy[['latLong', 'address', 'buildingName', 'nearest_park', 'nearest_supermarket', 'price', 'beds']].reset_index(drop=True)
 
 
 if __name__ == '__main__':
     
     # Parameters
-    min_budget = int(input('min_budget'))
-    max_budget = int(input('max_budget'))
-    park = 2 if True else 0
-    supermarket = 4 if True else 0
-    min_safety_pr = int(input('min_safety_pr'))
-    commute_type = input('commute_type')
-    income = int(input('Income')) * 1000
-    beds = int(input('beds'))
+    min_budget = int(input("What is your minimun budget for the rent? "))
+    max_budget = int(input('What is your maximum budget for the rent? '))
+    park_question = input("Do you want to have a park in a walking distance? (Enter yes or no) ").lower()[0]
+    park = 2 if park_question == 'y' else 0
+    supermarket_question = input("Do you want to have a supermarket in a walking distance? (Enter yes or no) ").lower()[0]
+    supermarket = 4 if supermarket_question == 'y' else 0
+    min_safety_pr = int(input('How safety do you want your apartment locates? (Enter 1 - 99) '))
+    car_question = input('Do you prefer to drive your own car? (Enter yes or no) ').lower()[0]
+    commute_type = 'driving' if car_question == 'y' else ''
+    income = int(input("What's your annual income? (Enter integer K) ")) * 1000
+    beds = int(input('How many bedrooms do you want to have? (Enter integer) '))
     api_key = "AIzaSyCaOWXoABSdgWZYGCRlEiAGyRnHtuha_D0"
     
     # Read data
@@ -167,7 +170,7 @@ if __name__ == '__main__':
     df = filter(df=df, park=park, supermarket=supermarket, min_safety_pr=min_safety_pr)
 
     # Calculte transportation details for the loc1
-    loc1 = input('loc1').strip()
+    loc1 = input('Please provide the geographical coordinate of your office. (Default is Amazon) ').strip()
     if (loc1 != 'Amazon') & (len(loc1)>0):
         loc1.split(',')
         loc1_latitude, loc1_longitude = float(loc1[0].strip()), float(loc1[1].strip())
@@ -175,7 +178,7 @@ if __name__ == '__main__':
         df = get_trans_details(df=df, commute_type=commute_type, loc_type='office', destination=destination, api_key=api_key)
 
      # Calculte transportation details for the loc2
-    loc2 = input('loc2').strip()
+    loc2 = input('Please provide the geographical coordinate of your school. (Default is UW MSDS) ').strip()
     if (loc2 != 'UW MSDS') & (len(loc2)>0):
         loc2.split(',')
         loc2_latitude, loc2_longitude = float(loc2[0].strip()), float(loc2[1].strip())
@@ -186,4 +189,65 @@ if __name__ == '__main__':
     remcommend_df = rb(df, car=car, budget=max_budget, income=income, park=park 
                        , supermarket=supermarket, loc1=len(loc1), loc2=len(loc2), car_cost=500
                        , loc1_days_per_month=22, loc2_days_per_month=8)
-    print(remcommend_df)
+    
+    print('\n')
+    print('First Recommendation')
+    print(f'\t - Building Name:', remcommend_df.loc[0, 'buildingName'])
+    print(f'\t - Address:', remcommend_df.loc[0, 'address'])
+    if park > 0:
+        print(f'\t - Nearest Park:', remcommend_df.loc[0, 'nearest_park'])
+    if supermarket >0:
+        print(f'\t - Nearest Supermarket:', remcommend_df.loc[0, 'nearest_supermarket'])
+    
+    print(f'\t - Price:', remcommend_df.loc[0, 'price'])
+    print(f'\t - Bedrooms:', remcommend_df.loc[0, 'beds'])
+
+    print('======================================================')
+    print('Second Recommendation')
+    print(f'\t - Building Name:', remcommend_df.loc[1, 'buildingName'])
+    print(f'\t - Address:', remcommend_df.loc[1, 'address'])
+    if park > 0:
+        print(f'\t - Nearest Park:', remcommend_df.loc[1, 'nearest_park'])
+    if supermarket >0:
+        print(f'\t - Nearest Supermarket:', remcommend_df.loc[1, 'nearest_supermarket'])
+    
+    print(f'\t - Price:', remcommend_df.loc[1, 'price'])
+    print(f'\t - Bedrooms:', remcommend_df.loc[1, 'beds'])
+
+    print('======================================================')
+    print('Third Recommendation')
+    print(f'\t - Building Name:', remcommend_df.loc[2, 'buildingName'])
+    print(f'\t - Address:', remcommend_df.loc[2, 'address'])
+    if park > 0:
+        print(f'\t - Nearest Park:', remcommend_df.loc[2, 'nearest_park'])
+    if supermarket >0:
+        print(f'\t - Nearest Supermarket:', remcommend_df.loc[2, 'nearest_supermarket'])
+    
+    print(f'\t - Price:', remcommend_df.loc[2, 'price'])
+    print(f'\t - Bedrooms:', remcommend_df.loc[2, 'beds'])
+
+    print('======================================================')
+    print('Forth Recommendation')
+    print(f'\t - Building Name:', remcommend_df.loc[3, 'buildingName'])
+    print(f'\t - Address:', remcommend_df.loc[3, 'address'])
+    if park > 0:
+        print(f'\t - Nearest Park:', remcommend_df.loc[3, 'nearest_park'])
+    if supermarket >0:
+        print(f'\t - Nearest Supermarket:', remcommend_df.loc[3, 'nearest_supermarket'])
+    
+    print(f'\t - Price:', remcommend_df.loc[3, 'price'])
+    print(f'\t - Bedrooms:', remcommend_df.loc[3, 'beds'])
+
+    print('======================================================')
+    print('Fifth Recommendation')
+    print(f'\t - Building Name:', remcommend_df.loc[4, 'buildingName'])
+    print(f'\t - Address:', remcommend_df.loc[4, 'address'])
+    if park > 0:
+        print(f'\t - Nearest Park:', remcommend_df.loc[4, 'nearest_park'])
+    if supermarket >0:
+        print(f'\t - Nearest Supermarket:', remcommend_df.loc[4, 'nearest_supermarket'])
+    
+    print(f'\t - Price:', remcommend_df.loc[4, 'price'])
+    print(f'\t - Bedrooms:', remcommend_df.loc[4, 'beds'])
+
+    print('======================================================')
