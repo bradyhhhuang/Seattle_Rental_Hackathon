@@ -13,6 +13,7 @@ def get_distance_and_duration(origin:str, destination:str, api_key:str, commute_
         "origins": origin,
         "destinations": destination,
         "mode": commute_type,  # Use 'driving' for driving directions, 'transit'
+        "arrival_time":1738170000, # 2025-01-29 09:00 AM
         "key": api_key
     }
     
@@ -26,9 +27,14 @@ def get_distance_and_duration(origin:str, destination:str, api_key:str, commute_
         if data['status'] == 'OK':
             # Extract the distance and duration
             element = data['rows'][0]['elements'][0]
-            distance = element['distance']['value']
-            duration = element['duration']['value']
-            fare = element.get('fare', {}).get('value', None)  # in the currency's smallest unit
+            if distance not in element.keys():
+                distance = None
+                duration = None
+                fare = None
+            else:
+                distance = element['distance']['value']
+                duration = element['duration']['value']
+                fare = element.get('fare', {}).get('value', None)  # in the currency's smallest unit
             return distance, duration, fare
         else:
             return None, f"Error: {data['status']}"
@@ -42,11 +48,20 @@ def get_trans_details(df:pd.DataFrame, commute_type:str, loc_type:str, destinati
     '''
     df_copy = df.copy()
     curr_locs = list(map(lambda x: f"{x['latitude']},{x['longitude']}" , df[['latitude', 'longitude']].to_dict('records')))
-    dist, duration, cost = list(map(lambda x : get_distance_and_duration(x, destination, api_key, mode=commute_type), curr_locs))
+    res = list(map(lambda x : get_distance_and_duration(x, destination, api_key, mode=commute_type), curr_locs))
+    
+    dist = []
+    duration = []
+    cost = []
+    for i in range(len(res)):
+        dist.append(res[i][0])
+        duration.append(res[i][1])
+        cost.append(res[i][2])
+
     if commute_type == 'driving':
-        df_copy[f'{loc_type}_trans_dist_car'], df_copy[f'{loc_type}_trans_duration_car'], df_copy[f'{loc_type}_trans_cost_car']  = dist, duration, cost
+        df_copy[f'{loc_type}_trans_dist_car'], df_copy[f'{loc_type}_trans_duration_car'], df_copy[f'{loc_type}_trans_cost_car'] = dist, duration, cost
     else:
-        df_copy[f'{loc_type}_trans_dist_transit'], df_copy[f'{loc_type}_trans_duration_transit'], df_copy[f'{loc_type}_trans_cost_transit']  = dist, duration, cost
+        df_copy[f'{loc_type}_trans_dist_transit'], df_copy[f'{loc_type}_trans_duration_transit'], df_copy[f'{loc_type}_trans_cost_transit'] = dist, duration, cost
 
     return df_copy
 
@@ -141,7 +156,7 @@ if __name__ == '__main__':
     commute_type = input('commute_type')
     income = int(input('Income')) * 1000
     beds = int(input('beds'))
-    api_key = "AIzaSyCaOWXoABSdgWZYGCRlEiAGyRnHtuha_D0"
+    api_key = "AIzaSyBNRW3LnHcoCCnXrnRzTCmB73tyYEYw5lM"
     
     # Read data
     df = pd.read_csv('data/df_all_listResults_w_crime.csv')
