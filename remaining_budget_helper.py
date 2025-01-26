@@ -155,7 +155,7 @@ if __name__ == '__main__':
         loc1.split(',')
         loc1_latitude, loc1_longitude = float(loc1[0]), float(loc1[1])
         destination = f"{loc1_latitude},{loc1_longitude}"
-        df = get_trans_details(df=df, commute_type=commute_type, type='office', destination=destination, api_key=api_key)
+        df = get_trans_details(df=df, commute_type=commute_type, loc_type='office', destination=destination, api_key=api_key)
 
      # Calculte transportation details for the loc2
     loc2 = input('loc2').strip()
@@ -163,7 +163,7 @@ if __name__ == '__main__':
         loc2.split(',')
         loc2_latitude, loc2_longitude = float(loc2[0]), float(loc2[1])
         destination = f"{loc2_latitude},{loc2_longitude}"
-        df = get_trans_details(df=df, commute_type=commute_type, type='school', destination=destination, api_key=api_key)
+        df = get_trans_details(df=df, commute_type=commute_type, loc_type='school', destination=destination, api_key=api_key)
 
     car = commute_type == 'driving'    
     remcommend_df = rb(df, car=car, budget=max_budget, income=income, park=park, hospital=hospital
