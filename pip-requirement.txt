@@ -9,3 +9,5 @@ scipy==1.15.1
 seaborn==0.13.2
 unicodecsv==0.14.1
 urllib3==2.3.0
+pyproj==3.7.0
+haversine==2.9.0
