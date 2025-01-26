@@ -1,9 +1,9 @@
 import requests
 import pandas as pd
 
-def get_distance_and_duration(origin:str, destination:str, api_key:str, commute_type:str):
+def get_distance_and_duration(origin: str, destination: str, api_key: str, commute_type: str):
     """
-    Get the distance/duration/fare from two `orgin` and `destination` by `commute_type`.
+    Get the distance, duration, and fare between origin and destination using the specified commute_type.
     """
     # Define the endpoint URL
     url = "https://maps.googleapis.com/maps/api/distancematrix/json"
@@ -12,8 +12,7 @@ def get_distance_and_duration(origin:str, destination:str, api_key:str, commute_
     params = {
         "origins": origin,
         "destinations": destination,
-        "mode": commute_type,  # Use 'driving' for driving directions, 'transit'
-        "arrival_time":1738170000, # 2025-01-29 09:00 AM
+        "mode": commute_type,  # Corrected from 'mode' to 'commute_type'
         "key": api_key
     }
     
@@ -27,37 +26,26 @@ def get_distance_and_duration(origin:str, destination:str, api_key:str, commute_
         if data['status'] == 'OK':
             # Extract the distance and duration
             element = data['rows'][0]['elements'][0]
-            if distance not in element.keys():
-                distance = None
-                duration = None
-                fare = None
-            else:
-                distance = element['distance']['value']
-                duration = element['duration']['value']
-                fare = element.get('fare', {}).get('value', None)  # in the currency's smallest unit
+            distance = element['distance']['value']  # in meters
+            duration = element['duration']['value']  # in seconds
+            fare = element.get('fare', {}).get('value', None)  # fare in smallest currency unit (if available)
             return distance, duration, fare
         else:
-            return None, f"Error: {data['status']}"
+            return None, None
     else:
-        return None, f"HTTP Error: {response.status_code}"
+        return None, None
 
 
-def get_trans_details(df:pd.DataFrame, commute_type:str, loc_type:str, destination:str, api_key:str)->pd.DataFrame:
-    '''
-    Get all transportation information from apartments to `destination` by `communte_type`
-    '''
+def get_trans_details(df: pd.DataFrame, commute_type: str, loc_type: str, destination: str, api_key: str) -> pd.DataFrame:
+    """
+    Get all transportation information from apartments to `destination` by `commute_type`
+    """
     df_copy = df.copy()
-    curr_locs = list(map(lambda x: f"{x['latitude']},{x['longitude']}" , df[['latitude', 'longitude']].to_dict('records')))
-    res = list(map(lambda x : get_distance_and_duration(x, destination, api_key, mode=commute_type), curr_locs))
+    curr_locs = list(map(lambda x: f"{x['latitude']},{x['longitude']}", df[['latitude', 'longitude']].to_dict('records')))
     
-    dist = []
-    duration = []
-    cost = []
-    for i in range(len(res)):
-        dist.append(res[i][0])
-        duration.append(res[i][1])
-        cost.append(res[i][2])
-
+    # Correcting the parameter name to commute_type
+    dist, duration, cost = list(map(lambda x: get_distance_and_duration(x, destination, api_key, commute_type=commute_type), curr_locs))
+    
     if commute_type == 'driving':
         df_copy[f'{loc_type}_trans_dist_car'], df_copy[f'{loc_type}_trans_duration_car'], df_copy[f'{loc_type}_trans_cost_car'] = dist, duration, cost
     else:
@@ -65,7 +53,8 @@ def get_trans_details(df:pd.DataFrame, commute_type:str, loc_type:str, destinati
 
     return df_copy
 
-def filter(df:pd.DataFrame, park:int, hospital:int, grocery:int, cafe:int, min_safety_pr:int)->pd.DataFrame:
+
+def filter(df:pd.DataFrame, park:int, supermarket:int, min_safety_pr:int)->pd.DataFrame:
     '''
     Filter out useless apartments
     '''
@@ -74,20 +63,16 @@ def filter(df:pd.DataFrame, park:int, hospital:int, grocery:int, cafe:int, min_s
 
     if park>0:
         df_copy = df_copy[df_copy['park'].notna()]
-    
-    if hospital>0:
-        df_copy = df_copy[df_copy['hospital'].notna()]
 
-    if grocery>0:
-        df_copy = df_copy[df_copy['grocery'].notna()]
-    
-    if cafe>0:
-        df_copy = df_copy[df_copy['cafe'].notna()]
+    if supermarket>0:
+        df_copy = df_copy[df_copy['supermarket'].notna()]
         
     return df_copy
 
+
+
 def rb(df:pd.DataFrame, car:bool, income:int, budget:int, park:int
-       , hospital:int, grocery:int, cafe:int, loc1:int, loc2:int
+       , supermarket:int, loc1:int, loc2:int
        , car_cost:int=500, loc1_days_per_month:int=22, loc2_days_per_month:int=8):
     '''
     Find the recommendation apartments based on the formula :
@@ -111,12 +96,8 @@ def rb(df:pd.DataFrame, car:bool, income:int, budget:int, park:int
         # All facilities are in walking distances
         df_copy['rb'] -= df_copy['park_trans_duration_transit'] / 60 * earning_per_min * park * 2 
         
-        df_copy['rb'] -= df_copy['hospital_trans_duration_transit'] / 60 * earning_per_min * hospital * 2
-
-        df_copy['rb'] -= df_copy['grocery_trans_duration_transit'] / 60 * earning_per_min * grocery * 2
+        df_copy['rb'] -= df_copy['supermarket_trans_duration_transit'] / 60 * earning_per_min * supermarket * 2
         
-        df_copy['rb'] -= df_copy['cafe_trans_duration_transit'] / 60 * earning_per_min * cafe  * 2
-
     else:
         if loc1>0:
             df_copy['rb'] -= df_copy['office_trans_cost_transit'] 
@@ -129,14 +110,9 @@ def rb(df:pd.DataFrame, car:bool, income:int, budget:int, park:int
         if park:
             df_copy['rb'] -= df_copy['park_trans_duration_transit'] / 60 * earning_per_min * park * 2
         
-        if hospital:
-            df_copy['rb'] -= df_copy['hospital_trans_duration_transit'] / 60 * earning_per_min * hospital * 2 
-
-        if grocery:
-            df_copy['rb'] -= df_copy['grocery_trans_duration_transit'] / 60 * earning_per_min * grocery * 2
+        if supermarket:
+            df_copy['rb'] -= df_copy['supermarket_trans_duration_transit'] / 60 * earning_per_min * supermarket * 2
         
-        if cafe:
-            df_copy['rb'] -= df_copy['cafe_trans_duration_transit'] / 60 * earning_per_min * cafe * 2 
 
     df_copy = df_copy.sort_values('rb', descending=False).iloc[:5]
 
@@ -149,20 +125,18 @@ if __name__ == '__main__':
     min_budget = int(input('min_budget'))
     max_budget = int(input('max_budget'))
     park = 2 if True else 0
-    hospital = 1 if True else 0
-    grocery = 4 if True else 0
-    cafe = 4 if True else 0
+    supermarket = 4 if True else 0
     min_safety_pr = int(input('min_safety_pr'))
     commute_type = input('commute_type')
     income = int(input('Income')) * 1000
     beds = int(input('beds'))
-    api_key = "AIzaSyBNRW3LnHcoCCnXrnRzTCmB73tyYEYw5lM"
+    api_key = "AIzaSyCaOWXoABSdgWZYGCRlEiAGyRnHtuha_D0"
     
     # Read data
     df = pd.read_csv('data/df_all_listResults_w_crime.csv')
     df = df[df['price']<=max_budget]
     df = df[df['beds'] >= beds]
-    df = filter(df=df, park=park, hospital=hospital, grocery=grocery, cafe=cafe, min_safety_pr=min_safety_pr)
+    df = filter(df=df, park=park, supermarket=supermarket, min_safety_pr=min_safety_pr)
 
     # Calculte transportation details for the loc1
     loc1 = input('loc1').strip()
@@ -181,6 +155,6 @@ if __name__ == '__main__':
         df = get_trans_details(df=df, commute_type=commute_type, loc_type='school', destination=destination, api_key=api_key)
 
     car = commute_type == 'driving'    
-    remcommend_df = rb(df, car=car, budget=max_budget, income=income, park=park, hospital=hospital
-                       , grocery=grocery, cafe=cafe, loc1=len(loc1), loc2=len(loc2), car_cost=500
+    remcommend_df = rb(df, car=car, budget=max_budget, income=income, park=park
+                       , supermarket=supermarket, loc1=len(loc1), loc2=len(loc2), car_cost=500
                        , loc1_days_per_month=22, loc2_days_per_month=8)
